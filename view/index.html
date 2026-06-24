@@ -67,8 +67,13 @@
     .node-badge { font-size: 10px; padding: 1px 6px; border-radius: 10px; flex-shrink: 0; }
     .badge-pending { background: #fff7e6; color: #d46b08; }
     .badge-done    { background: #f6ffed; color: #389e0d; }
+    .badge-blocked { background: #fff1f0; color: #cf1322; }
     .dark .badge-pending { background: #332b00; color: #ffc53d; }
     .dark .badge-done    { background: #0a2e0a; color: #73d13d; }
+    .dark .badge-blocked { background: #2a1215; color: #ff4d4f; }
+
+    .node.blocked { border-style: dashed; opacity: 0.7; }
+    .dark .node.blocked { opacity: 0.7; }
 
     .node-content {
       font-size: 12px; line-height: 1.5; word-break: break-word;
@@ -133,14 +138,14 @@
         title: '依赖图谱', refresh: '刷新',
         emptyTitle: '暂无依赖关系',
         emptyHint: '右键 Todo 节点，选择「设置依赖」<br>即可建立待办之间的依赖关系',
-        done: '已完成', pending: '待完成', notFound: '未找到该 Todo',
+        done: '已完成', pending: '待完成', blocked: '阻塞中', notFound: '未找到该 Todo',
         cycleWarning: '检测到循环依赖，部分节点的层级可能不准确',
       },
       en: {
         title: 'Dependency Graph', refresh: 'Refresh',
         emptyTitle: 'No dependencies yet',
         emptyHint: 'Right-click a Todo and select "Set Dependencies"<br>to create dependency relationships',
-        done: 'Done', pending: 'Pending', notFound: 'Todo not found',
+        done: 'Done', pending: 'Pending', blocked: 'Blocked', notFound: 'Todo not found',
         cycleWarning: 'Cycle detected — some nodes may be positioned incorrectly',
       },
     }
@@ -300,8 +305,28 @@
       container.style.width  = layout.width + 'px'
       container.style.height = layout.height + 'px'
 
+      // Build dependency map: nodeId -> [depIds]
+      const depsOf = {}
+      for (const [from, to] of edges) {
+        if (!depsOf[to]) depsOf[to] = []
+        depsOf[to].push(from)
+      }
+
+      function isBlocked(id) {
+        const deps = depsOf[id]
+        if (!deps?.length) return false
+        const todo = todoData[id]
+        if (todo?.done) return false
+        return deps.some(depId => {
+          const dep = todoData[depId]
+          return !dep || !dep.done
+        })
+      }
+
       const edgeColor = isDark ? '#4a4a6a' : '#c8c8d0'
+      const blockedEdgeColor = isDark ? '#5c2020' : '#ffccc7'
       const arrowColor = isDark ? '#6a6a8a' : '#aaa'
+      const blockedArrowColor = isDark ? '#ff4d4f' : '#ff7875'
       const svg = svgEl('svg', { id: 'edgeSvg', width: layout.width, height: layout.height })
       const defs = svgEl('defs', {})
       const marker = svgEl('marker', {
@@ -309,7 +334,12 @@
         refX: 9, refY: 3.5, orient: 'auto', markerUnits: 'strokeWidth',
       })
       marker.appendChild(svgEl('polygon', { points: '0 0.5,9 3.5,0 6.5', fill: arrowColor }))
-      defs.appendChild(marker); svg.appendChild(defs)
+      const blockedMarker = svgEl('marker', {
+        id: 'arrow-blocked', markerWidth: 10, markerHeight: 7,
+        refX: 9, refY: 3.5, orient: 'auto', markerUnits: 'strokeWidth',
+      })
+      blockedMarker.appendChild(svgEl('polygon', { points: '0 0.5,9 3.5,0 6.5', fill: blockedArrowColor }))
+      defs.appendChild(marker); defs.appendChild(blockedMarker); svg.appendChild(defs)
 
       for (const [from, to] of edges) {
         const p1 = positions[from], p2 = positions[to]
@@ -317,9 +347,16 @@
         const x1 = p1.x + NODE_W / 2, y1 = p1.y + NODE_H
         const x2 = p2.x + NODE_W / 2, y2 = p2.y
         const cp = Math.max(Math.abs(y2 - y1) * 0.35, 20)
+        const fromDone = todoData[from]?.done
+        const toBlocked = isBlocked(to)
+        const isBlockingEdge = toBlocked && !fromDone
         svg.appendChild(svgEl('path', {
           d: `M${x1},${y1} C${x1},${y1 + cp} ${x2},${y2 - cp} ${x2},${y2}`,
-          fill: 'none', stroke: edgeColor, 'stroke-width': 2, 'marker-end': 'url(#arrow)',
+          fill: 'none',
+          stroke: isBlockingEdge ? blockedEdgeColor : edgeColor,
+          'stroke-width': 2,
+          'stroke-dasharray': isBlockingEdge ? '6,3' : 'none',
+          'marker-end': isBlockingEdge ? 'url(#arrow-blocked)' : 'url(#arrow)',
         }))
       }
       container.appendChild(svg)
@@ -327,10 +364,12 @@
       for (const id of nodeIds) {
         const pos = positions[id]; if (!pos) continue
         const todo = todoData[id]
+        const blocked = isBlocked(id)
         const el = document.createElement('div'); el.className = 'node'
         if (todo) {
           el.classList.add('level-' + (todo.level || 'default'))
           if (todo.done) el.classList.add('done')
+          else if (blocked) el.classList.add('blocked')
         } else el.classList.add('not-found')
         el.style.cssText = `left:${pos.x}px;top:${pos.y}px;width:${NODE_W}px;`
 
@@ -339,8 +378,16 @@
         badge.textContent = '#' + id; header.appendChild(badge)
         if (todo) {
           const sb = document.createElement('span')
-          sb.className = 'node-badge ' + (todo.done ? 'badge-done' : 'badge-pending')
-          sb.textContent = todo.done ? t.done : t.pending
+          if (todo.done) {
+            sb.className = 'node-badge badge-done'
+            sb.textContent = t.done
+          } else if (blocked) {
+            sb.className = 'node-badge badge-blocked'
+            sb.textContent = t.blocked
+          } else {
+            sb.className = 'node-badge badge-pending'
+            sb.textContent = t.pending
+          }
           header.appendChild(sb)
         }
         el.appendChild(header)

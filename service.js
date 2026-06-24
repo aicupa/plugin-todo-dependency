@@ -78,6 +78,37 @@ module.exports = (api) => {
       }
     },
 
+    async toggleDone({ todoId, done, filePath }) {
+      try {
+        const content = await api.readFile(filePath)
+        const data = JSON.parse(content)
+        const todotree = data.todotree
+
+        function findAndUpdate(nodes) {
+          for (const node of nodes) {
+            if (node.todo && node.todo.id === todoId) {
+              node.todo.done = done
+              if (done) {
+                node.todo.doneAt = Date.now()
+              } else {
+                delete node.todo.doneAt
+              }
+              return true
+            }
+            if (node.children?.length && findAndUpdate(node.children)) return true
+          }
+          return false
+        }
+
+        findAndUpdate(todotree.tree)
+        await api.store('todotree', todotree, filePath)
+        await api.reload(filePath)
+        return { ok: true }
+      } catch (e) {
+        return { ok: false, error: e.message }
+      }
+    },
+
     async scanAllDeps({ filePath }) {
       try {
         const data = await api.getTree(filePath)

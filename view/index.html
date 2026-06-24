@@ -16,13 +16,13 @@
       color: #333;
     }
 
-    body.dark #graphUI { color: #e0e0e0; }
+    body.dark #graphUI { color: #cccccc; }
 
     .toolbar {
       padding: 10px 16px; background: #fff; border-bottom: 1px solid #e8e8e8;
       display: flex; align-items: center; gap: 10px; flex-shrink: 0;
     }
-    .dark .toolbar { background: #16213e; border-bottom-color: #2a2a4a; }
+    .dark .toolbar { background: #252526; border-bottom-color: #3c3c3c; }
     .toolbar-title { font-size: 14px; font-weight: 600; flex: 1; }
 
     .btn {
@@ -32,17 +32,17 @@
     .btn:active { transform: scale(0.97); }
     .btn-ghost { background: transparent; color: #666; }
     .btn-ghost:hover { background: #f0f0f0; }
-    .dark .btn-ghost { color: #aaa; }
-    .dark .btn-ghost:hover { background: #2a2a4a; }
+    .dark .btn-ghost { color: #9d9d9d; }
+    .dark .btn-ghost:hover { background: #3c3c3c; }
 
     .warning {
       background: #fffbe6; border-bottom: 1px solid #ffe58f; color: #ad6800;
       padding: 6px 16px; font-size: 12px; flex-shrink: 0;
     }
-    .dark .warning { background: #332b00; border-bottom-color: #554400; color: #ffc53d; }
+    .dark .warning { background: #3a3000; border-bottom-color: #554400; color: #ffc53d; }
 
     #graphArea { flex: 1; overflow: auto; position: relative; background: #f7f8fa; }
-    .dark #graphArea { background: #1a1a2e; }
+    .dark #graphArea { background: #1e1e1e; }
     #graphContainer { position: relative; min-width: 100%; min-height: 100%; }
 
     .node {
@@ -51,29 +51,34 @@
       padding: 10px 12px; cursor: default;
       box-shadow: 0 1px 4px rgba(0,0,0,0.06);
       transition: box-shadow 0.2s, transform 0.15s;
+      display: flex; align-items: flex-start; gap: 10px;
     }
     .node:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); transform: translateY(-1px); }
-    .dark .node { background: #16213e; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+    .dark .node { background: #2d2d2d; border-color: #3c3c3c; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
     .node.done { opacity: 0.55; }
-    .node.done .node-content { text-decoration: line-through; }
+    .node.done .node-content { text-decoration: line-through; color: #999; }
     .node.not-found { border-style: dashed; opacity: 0.65; }
 
-    .node-header { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
-    .node-id {
-      font-size: 10px; font-weight: 700; color: #fff;
-      background: #1890ff; padding: 1px 7px; border-radius: 10px;
-      flex-shrink: 0; letter-spacing: 0.3px;
+    .node-check {
+      width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
+      border: 2px solid #d9d9d9; background: #fff; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s; margin-top: 1px;
     }
-    .node-badge { font-size: 10px; padding: 1px 6px; border-radius: 10px; flex-shrink: 0; }
-    .badge-pending { background: #fff7e6; color: #d46b08; }
-    .badge-done    { background: #f6ffed; color: #389e0d; }
-    .badge-blocked { background: #fff1f0; color: #cf1322; }
-    .dark .badge-pending { background: #332b00; color: #ffc53d; }
-    .dark .badge-done    { background: #0a2e0a; color: #73d13d; }
-    .dark .badge-blocked { background: #2a1215; color: #ff4d4f; }
+    .node-check:hover { border-color: #52c41a; background: #f6ffed; }
+    .node-check:active { transform: scale(0.9); }
+    .node-check.checked { border-color: #52c41a; background: #52c41a; }
+    .node-check.checked::after {
+      content: ''; display: block; width: 4px; height: 7px;
+      border: solid #fff; border-width: 0 1.5px 1.5px 0;
+      transform: rotate(45deg) translate(-0.5px, -0.5px);
+    }
+    .dark .node-check { border-color: #555; background: #2d2d2d; }
+    .dark .node-check:hover { border-color: #73d13d; background: #1e3a1e; }
+    .dark .node-check.checked { border-color: #73d13d; background: #73d13d; }
+    .dark .node-check.checked::after { border-color: #2d2d2d; }
 
-    .node.blocked { border-style: dashed; opacity: 0.7; }
-    .dark .node.blocked { opacity: 0.7; }
+    .node-body { flex: 1; min-width: 0; }
 
     .node-content {
       font-size: 12px; line-height: 1.5; word-break: break-word;
@@ -81,16 +86,25 @@
       -webkit-box-orient: vertical; overflow: hidden;
     }
 
+    .node-badge {
+      display: inline-block; font-size: 10px; padding: 1px 6px;
+      border-radius: 10px; margin-top: 5px;
+    }
+    .badge-pending { background: #fff7e6; color: #d46b08; }
+    .badge-done    { background: #f6ffed; color: #389e0d; }
+    .badge-blocked { background: #fff1f0; color: #cf1322; }
+    .dark .badge-pending { background: #3a3000; color: #ffc53d; }
+    .dark .badge-done    { background: #1e3a1e; color: #73d13d; }
+    .dark .badge-blocked { background: #3a1a1a; color: #ff4d4f; }
+
+    .node.blocked { border-style: dashed; opacity: 0.7; }
+    .dark .node.blocked { opacity: 0.7; }
+
     .level-default   { border-color: #1890ff; }
     .level-secondary { border-color: #bbb; }
     .level-success   { border-color: #52c41a; }
     .level-warning   { border-color: #faad14; }
     .level-danger    { border-color: #ff4d4f; }
-    .level-default   .node-id { background: #1890ff; }
-    .level-secondary .node-id { background: #999; }
-    .level-success   .node-id { background: #52c41a; }
-    .level-warning   .node-id { background: #e8a100; }
-    .level-danger    .node-id { background: #ff4d4f; }
 
     #edgeSvg { position: absolute; top: 0; left: 0; pointer-events: none; }
 
@@ -299,6 +313,13 @@
       return el
     }
 
+    async function toggleTodoDone(todoId, done) {
+      try {
+        await callPlugin('toggleDone', { todoId, done, filePath: currentFilePath })
+      } catch {}
+      autoScan()
+    }
+
     function renderGraph(nodeIds, edges, positions, todoData, layout) {
       const container = document.getElementById('graphContainer')
       container.innerHTML = ''
@@ -323,30 +344,32 @@
         })
       }
 
-      const edgeColor = isDark ? '#4a4a6a' : '#c8c8d0'
+      const edgeColor = isDark ? '#555' : '#c8c8d0'
       const blockedEdgeColor = isDark ? '#5c2020' : '#ffccc7'
-      const arrowColor = isDark ? '#6a6a8a' : '#aaa'
+      const arrowColor = isDark ? '#777' : '#aaa'
       const blockedArrowColor = isDark ? '#ff4d4f' : '#ff7875'
       const svg = svgEl('svg', { id: 'edgeSvg', width: layout.width, height: layout.height })
       const defs = svgEl('defs', {})
-      const marker = svgEl('marker', {
-        id: 'arrow', markerWidth: 10, markerHeight: 7,
-        refX: 9, refY: 3.5, orient: 'auto', markerUnits: 'strokeWidth',
-      })
-      marker.appendChild(svgEl('polygon', { points: '0 0.5,9 3.5,0 6.5', fill: arrowColor }))
-      const blockedMarker = svgEl('marker', {
-        id: 'arrow-blocked', markerWidth: 10, markerHeight: 7,
-        refX: 9, refY: 3.5, orient: 'auto', markerUnits: 'strokeWidth',
-      })
-      blockedMarker.appendChild(svgEl('polygon', { points: '0 0.5,9 3.5,0 6.5', fill: blockedArrowColor }))
-      defs.appendChild(marker); defs.appendChild(blockedMarker); svg.appendChild(defs)
+      function addMarker(id, color) {
+        const m = svgEl('marker', {
+          id, markerWidth: 8, markerHeight: 6,
+          refX: 4, refY: 3, orient: 'auto-start-reverse', markerUnits: 'userSpaceOnUse',
+        })
+        m.appendChild(svgEl('polygon', { points: '0 0,8 3,0 6', fill: color }))
+        defs.appendChild(m)
+      }
+      addMarker('arrow', arrowColor)
+      addMarker('arrow-blocked', blockedArrowColor)
+      svg.appendChild(defs)
 
+      const ARROW_H = 6
       for (const [from, to] of edges) {
         const p1 = positions[from], p2 = positions[to]
         if (!p1 || !p2) continue
         const x1 = p1.x + NODE_W / 2, y1 = p1.y + NODE_H
-        const x2 = p2.x + NODE_W / 2, y2 = p2.y
-        const cp = Math.max(Math.abs(y2 - y1) * 0.35, 20)
+        const x2 = p2.x + NODE_W / 2, y2 = p2.y - ARROW_H
+        const dy = Math.abs(y2 - y1)
+        const cp = Math.max(dy * 0.4, 30)
         const fromDone = todoData[from]?.done
         const toBlocked = isBlocked(to)
         const isBlockingEdge = toBlocked && !fromDone
@@ -354,7 +377,7 @@
           d: `M${x1},${y1} C${x1},${y1 + cp} ${x2},${y2 - cp} ${x2},${y2}`,
           fill: 'none',
           stroke: isBlockingEdge ? blockedEdgeColor : edgeColor,
-          'stroke-width': 2,
+          'stroke-width': 1.5,
           'stroke-dasharray': isBlockingEdge ? '6,3' : 'none',
           'marker-end': isBlockingEdge ? 'url(#arrow-blocked)' : 'url(#arrow)',
         }))
@@ -373,9 +396,26 @@
         } else el.classList.add('not-found')
         el.style.cssText = `left:${pos.x}px;top:${pos.y}px;width:${NODE_W}px;`
 
-        const header = document.createElement('div'); header.className = 'node-header'
-        const badge = document.createElement('span'); badge.className = 'node-id'
-        badge.textContent = '#' + id; header.appendChild(badge)
+        if (todo) {
+          const check = document.createElement('div')
+          check.className = 'node-check' + (todo.done ? ' checked' : '')
+          check.addEventListener('click', e => {
+            e.stopPropagation()
+            toggleTodoDone(id, !todo.done)
+          })
+          el.appendChild(check)
+        }
+
+        const body = document.createElement('div'); body.className = 'node-body'
+        const content = document.createElement('div'); content.className = 'node-content'
+        if (todo) {
+          content.textContent = todo.content
+        } else {
+          content.textContent = t.notFound
+          content.style.color = '#ff4d4f'; content.style.fontStyle = 'italic'
+        }
+        body.appendChild(content)
+
         if (todo) {
           const sb = document.createElement('span')
           if (todo.done) {
@@ -388,13 +428,10 @@
             sb.className = 'node-badge badge-pending'
             sb.textContent = t.pending
           }
-          header.appendChild(sb)
+          body.appendChild(sb)
         }
-        el.appendChild(header)
-        const content = document.createElement('div'); content.className = 'node-content'
-        if (todo) content.textContent = todo.content
-        else { content.textContent = t.notFound; content.style.color = '#ff4d4f'; content.style.fontStyle = 'italic' }
-        el.appendChild(content); container.appendChild(el)
+
+        el.appendChild(body); container.appendChild(el)
       }
     }
 

@@ -121,9 +121,10 @@ module.exports = (api) => {
             if (node.todo && node.todo.id === todoId) {
               node.todo.done = done
               if (done) {
-                node.todo.doneAt = Date.now()
+                node.todo.end = Date.now()
+                node.todo.focus = false
               } else {
-                delete node.todo.doneAt
+                delete node.todo.end
               }
               return true
             }

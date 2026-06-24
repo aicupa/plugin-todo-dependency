@@ -54,11 +54,16 @@ module.exports = (api) => {
         const data = JSON.parse(content)
         const todotree = data.todotree
 
+        const allTodos = []
+        flattenTodos(todotree.tree, allTodos)
+        const existingIds = new Set(allTodos.map(t => t.id))
+        const validDepIds = depIds.filter(id => existingIds.has(id))
+
         function findAndUpdate(nodes) {
           for (const node of nodes) {
             if (node.todo && node.todo.id === todoId) {
-              if (depIds.length > 0) {
-                node.todo.depIds = depIds
+              if (validDepIds.length > 0) {
+                node.todo.depIds = validDepIds
               } else {
                 delete node.todo.depIds
               }

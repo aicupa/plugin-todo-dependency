@@ -43,7 +43,8 @@
 
     #graphArea { flex: 1; overflow: auto; position: relative; background: #f7f8fa; }
     .dark #graphArea { background: #1e1e1e; }
-    #graphContainer { position: relative; min-width: 100%; min-height: 100%; }
+    #graphContainer { min-width: 100%; min-height: 100%; display: flex; align-items: center; justify-content: center; }
+    #graphInner { position: relative; flex-shrink: 0; }
 
     .node {
       position: absolute; width: 200px; background: #fff;
@@ -241,8 +242,39 @@
       } catch { return }
       if (!data) return
 
-      const { todos, edges } = data
-      const nodeIds = Object.keys(todos).map(Number)
+      const { todos, edges: allEdges } = data
+
+      // Build adjacency (both directions) to find connected components
+      const allIds = new Set()
+      const neighbors = {}
+      for (const [from, to] of allEdges) {
+        allIds.add(from); allIds.add(to)
+        if (!neighbors[from]) neighbors[from] = []
+        if (!neighbors[to]) neighbors[to] = []
+        neighbors[from].push(to)
+        neighbors[to].push(from)
+      }
+      // BFS to find connected components, keep components that have any undone node
+      const visited = new Set()
+      const visibleIds = new Set()
+      for (const start of allIds) {
+        if (visited.has(start)) continue
+        const comp = []
+        const queue = [start]
+        visited.add(start)
+        while (queue.length) {
+          const cur = queue.shift()
+          comp.push(cur)
+          for (const nb of (neighbors[cur] || [])) {
+            if (!visited.has(nb)) { visited.add(nb); queue.push(nb) }
+          }
+        }
+        if (comp.some(id => !todos[id]?.done)) {
+          for (const id of comp) visibleIds.add(id)
+        }
+      }
+      const edges = allEdges.filter(([from, to]) => visibleIds.has(from) && visibleIds.has(to))
+      const nodeIds = [...visibleIds]
       if (!nodeIds.length) { showEmpty(); return }
 
       const { layers, hasCycle } = assignLayers(nodeIds, edges)
@@ -323,8 +355,11 @@
     function renderGraph(nodeIds, edges, positions, todoData, layout) {
       const container = document.getElementById('graphContainer')
       container.innerHTML = ''
-      container.style.width  = layout.width + 'px'
-      container.style.height = layout.height + 'px'
+      const inner = document.createElement('div')
+      inner.id = 'graphInner'
+      inner.style.width  = layout.width + 'px'
+      inner.style.height = layout.height + 'px'
+      container.appendChild(inner)
 
       // Build dependency map: nodeId -> [depIds]
       const depsOf = {}
@@ -382,7 +417,7 @@
           'marker-end': isBlockingEdge ? 'url(#arrow-blocked)' : 'url(#arrow)',
         }))
       }
-      container.appendChild(svg)
+      inner.appendChild(svg)
 
       for (const id of nodeIds) {
         const pos = positions[id]; if (!pos) continue
@@ -431,7 +466,7 @@
           body.appendChild(sb)
         }
 
-        el.appendChild(body); container.appendChild(el)
+        el.appendChild(body); inner.appendChild(el)
       }
     }
 

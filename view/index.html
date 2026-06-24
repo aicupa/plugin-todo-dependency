@@ -109,10 +109,16 @@
 
     #edgeSvg { position: absolute; top: 0; left: 0; pointer-events: none; }
 
+    #graphInner { transition: opacity 0.35s ease; }
+    #graphInner.fade-out { opacity: 0; }
+
     .empty-state {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      height: 100%; color: #aaa; padding: 40px 24px; text-align: center; user-select: none;
+      position: absolute; inset: 0;
+      color: #aaa; padding: 40px 24px; text-align: center; user-select: none;
+      opacity: 0; pointer-events: none; transition: opacity 0.35s ease;
     }
+    .empty-state.visible { opacity: 1; pointer-events: auto; }
     .empty-icon { width: 64px; height: 64px; margin-bottom: 16px; opacity: 0.35; }
     .empty-title { font-size: 15px; font-weight: 500; margin-bottom: 10px; color: #888; }
     .dark .empty-title { color: #777; }
@@ -128,20 +134,19 @@
     </div>
     <div id="warnings"></div>
     <div id="graphArea">
-      <div id="graphContainer">
-        <div class="empty-state" id="emptyState">
-          <svg class="empty-icon" viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="8" y="10" width="24" height="16" rx="4"/>
-            <rect x="48" y="10" width="24" height="16" rx="4"/>
-            <rect x="28" y="50" width="24" height="16" rx="4"/>
-            <line x1="26" y1="26" x2="36" y2="50" stroke-dasharray="3,2"/>
-            <line x1="54" y1="26" x2="44" y2="50" stroke-dasharray="3,2"/>
-            <polygon points="36,50 33,45 39,45" fill="currentColor" stroke="none"/>
-            <polygon points="44,50 41,45 47,45" fill="currentColor" stroke="none"/>
-          </svg>
-          <div class="empty-title" data-i18n="emptyTitle"></div>
-          <div class="empty-hint" data-i18n="emptyHint"></div>
-        </div>
+      <div id="graphContainer"></div>
+      <div class="empty-state visible" id="emptyState">
+        <svg class="empty-icon" viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="8" y="10" width="24" height="16" rx="4"/>
+          <rect x="48" y="10" width="24" height="16" rx="4"/>
+          <rect x="28" y="50" width="24" height="16" rx="4"/>
+          <line x1="26" y1="26" x2="36" y2="50" stroke-dasharray="3,2"/>
+          <line x1="54" y1="26" x2="44" y2="50" stroke-dasharray="3,2"/>
+          <polygon points="36,50 33,45 39,45" fill="currentColor" stroke="none"/>
+          <polygon points="44,50 41,45 47,45" fill="currentColor" stroke="none"/>
+        </svg>
+        <div class="empty-title" data-i18n="emptyTitle"></div>
+        <div class="empty-hint" data-i18n="emptyHint"></div>
       </div>
     </div>
   </div>
@@ -153,6 +158,8 @@
         title: '依赖图谱', refresh: '刷新',
         emptyTitle: '暂无依赖关系',
         emptyHint: '右键 Todo 节点，选择「设置依赖」<br>即可建立待办之间的依赖关系',
+        allDoneTitle: '所有依赖任务已完成 🎉',
+        allDoneHint: '当前依赖链路中的任务均已完成<br>如有新的依赖关系，请重新创建',
         done: '已完成', pending: '待完成', blocked: '阻塞中', notFound: '未找到该 Todo',
         cycleWarning: '检测到循环依赖，部分节点的层级可能不准确',
       },
@@ -160,6 +167,8 @@
         title: 'Dependency Graph', refresh: 'Refresh',
         emptyTitle: 'No dependencies yet',
         emptyHint: 'Right-click a Todo and select "Set Dependencies"<br>to create dependency relationships',
+        allDoneTitle: 'All dependency tasks completed 🎉',
+        allDoneHint: 'All tasks in dependency chains are done<br>Create new dependencies if needed',
         done: 'Done', pending: 'Pending', blocked: 'Blocked', notFound: 'Todo not found',
         cycleWarning: 'Cycle detected — some nodes may be positioned incorrectly',
       },
@@ -243,6 +252,7 @@
       if (!data) return
 
       const { todos, edges: allEdges } = data
+      hideEmpty()
 
       // Build adjacency (both directions) to find connected components
       const allIds = new Set()
@@ -275,7 +285,7 @@
       }
       const edges = allEdges.filter(([from, to]) => visibleIds.has(from) && visibleIds.has(to))
       const nodeIds = [...visibleIds]
-      if (!nodeIds.length) { showEmpty(); return }
+      if (!nodeIds.length) { fadeToEmpty(allEdges.length > 0); return }
 
       const { layers, hasCycle } = assignLayers(nodeIds, edges)
       if (hasCycle) {
@@ -285,11 +295,23 @@
       renderGraph(nodeIds, edges, layout.positions, todos, layout)
     }
 
-    function showEmpty() {
-      const c = document.getElementById('graphContainer')
+    function showEmpty(allDone) {
+      document.getElementById('graphContainer').innerHTML = ''
       const e = document.getElementById('emptyState')
-      c.innerHTML = ''; c.style.width = ''; c.style.height = ''
-      c.appendChild(e); e.style.display = 'flex'
+      e.querySelector('.empty-title').innerHTML = allDone ? t.allDoneTitle : t.emptyTitle
+      e.querySelector('.empty-hint').innerHTML = allDone ? t.allDoneHint : t.emptyHint
+      e.classList.add('visible')
+    }
+
+    function hideEmpty() {
+      document.getElementById('emptyState').classList.remove('visible')
+    }
+
+    function fadeToEmpty(allDone) {
+      const inner = document.getElementById('graphInner')
+      if (!inner) { showEmpty(allDone); return }
+      inner.classList.add('fade-out')
+      inner.addEventListener('transitionend', () => showEmpty(allDone), { once: true })
     }
 
     // ── Layout algorithm ──

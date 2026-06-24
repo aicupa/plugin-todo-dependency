@@ -1,0 +1,20 @@
+service.js
+  s_9a3551303da9d3::t_1ece1d0cf8da4a 125
+  s_9a3551303da9d3::t_0261614ef25016 124,127
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.11",
+  "base_commit_sha": "334751c12331d62c2f7d85f597333432d1e84b32",
+  "prompts": {},
+  "sessions": {
+    "s_9a3551303da9d3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9b5da74e-20c1-426b-b31f-9ec7950b4053",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "muhai <muhai.li@tuya.com>"
+    }
+  }
+}

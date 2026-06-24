@@ -1,0 +1,35 @@
+view/index.html
+  s_89aa5278024a6f::t_d09f3d53d53921 35-36
+  s_89aa5278024a6f::t_e30b59c8af1b95 42
+  s_89aa5278024a6f::t_746d9c33f5238d 54,59,66,70,81,89-95,99-101
+  s_89aa5278024a6f::t_0dbc5a317e5ac4 96-98
+  s_89aa5278024a6f::t_e20ffff630c972 399-405,407
+  s_89aa5278024a6f::t_cbef52d2921397 347,349
+  s_89aa5278024a6f::t_975a0bc43c8644 406,408-418,431,433-434
+  s_89aa5278024a6f::t_1c9974f3e8d5ea 62-65,68-69,71-75,78
+  s_89aa5278024a6f::t_b09b3f4eba6a6f 19,25
+  s_89aa5278024a6f::t_708c713906b8ca 316-322
+  s_89aa5278024a6f::t_8870135a36d326 353-363,365,370-372,380
+  s_89aa5278024a6f::t_b7bfb0c81fed04 76-77,79
+  s_89aa5278024a6f::t_2d3ebc018f1b76 57
+  s_89aa5278024a6f::t_85054adcf4ec59 45
+service.js
+  s_89aa5278024a6f::t_b74fbe691dceb2 81-90,96-104
+  s_89aa5278024a6f::t_67adb2943e5133 91-95
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.11",
+  "base_commit_sha": "9827be06902a4304c0369ffdb82363630acb4aee",
+  "prompts": {},
+  "sessions": {
+    "s_89aa5278024a6f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e040440a-e68b-4ec2-8173-64a0cb81904d",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "muhai <muhai.li@tuya.com>"
+    }
+  }
+}

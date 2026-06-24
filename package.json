@@ -1,6 +1,6 @@
 {
   "name": "@aicupa/plugin-todo-dependency",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Set and visualize dependencies between todo items",
   "description_zh": "设置并可视化待办事项之间的依赖关系",
   "main": "./service",

@@ -11,6 +11,7 @@ module.exports = (api) => {
           id: node.todo.id,
           content: node.todo.content,
           done: node.todo.done,
+          focus: node.todo.focus || false,
           level: node.todo.level,
           depIds: node.todo.depIds || [],
         })
@@ -67,6 +68,32 @@ module.exports = (api) => {
               } else {
                 delete node.todo.depIds
               }
+              return true
+            }
+            if (node.children?.length && findAndUpdate(node.children)) return true
+          }
+          return false
+        }
+
+        findAndUpdate(todotree.tree)
+        await api.store('todotree', todotree, filePath)
+        await api.reload(filePath)
+        return { ok: true }
+      } catch (e) {
+        return { ok: false, error: e.message }
+      }
+    },
+
+    async toggleFocus({ todoId, focus, filePath }) {
+      try {
+        const content = await api.readFile(filePath)
+        const data = JSON.parse(content)
+        const todotree = data.todotree
+
+        function findAndUpdate(nodes) {
+          for (const node of nodes) {
+            if (node.todo && node.todo.id === todoId) {
+              node.todo.focus = focus
               return true
             }
             if (node.children?.length && findAndUpdate(node.children)) return true

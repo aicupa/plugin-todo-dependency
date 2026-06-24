@@ -52,7 +52,7 @@
       padding: 10px 12px; cursor: default;
       box-shadow: 0 1px 4px rgba(0,0,0,0.06);
       transition: box-shadow 0.2s, transform 0.15s;
-      display: flex; align-items: flex-start; gap: 10px;
+      display: flex; align-items: flex-start; gap: 8px;
     }
     .node:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); transform: translateY(-1px); }
     .dark .node { background: #2d2d2d; border-color: #3c3c3c; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
@@ -79,7 +79,22 @@
     .dark .node-check.checked { border-color: #73d13d; background: #73d13d; }
     .dark .node-check.checked::after { border-color: #2d2d2d; }
 
-    .node-body { flex: 1; min-width: 0; }
+    .node-body { flex: 1; min-width: 0; position: relative; }
+
+    .node-focus {
+      position: absolute; top: -2px; right: -4px;
+      width: 16px; height: 16px; cursor: pointer;
+      border: none; background: none; padding: 0;
+      color: #bbb; transition: color 0.15s;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.15s, color 0.15s;
+    }
+    .node:hover .node-focus { opacity: 1; }
+    .node-focus.active { opacity: 1; color: #1890ff; }
+    .node-focus:hover { color: #1890ff; }
+    .dark .node-focus { color: #555; }
+    .dark .node-focus:hover { color: #40a9ff; }
+    .dark .node-focus.active { color: #40a9ff; }
 
     .node-content {
       font-size: 12px; line-height: 1.5; word-break: break-word;
@@ -91,12 +106,14 @@
       display: inline-block; font-size: 10px; padding: 1px 6px;
       border-radius: 10px; margin-top: 5px;
     }
-    .badge-pending { background: #fff7e6; color: #d46b08; }
-    .badge-done    { background: #f6ffed; color: #389e0d; }
-    .badge-blocked { background: #fff1f0; color: #cf1322; }
-    .dark .badge-pending { background: #3a3000; color: #ffc53d; }
-    .dark .badge-done    { background: #1e3a1e; color: #73d13d; }
-    .dark .badge-blocked { background: #3a1a1a; color: #ff4d4f; }
+    .badge-pending  { background: #fff7e6; color: #d46b08; }
+    .badge-done     { background: #f6ffed; color: #389e0d; }
+    .badge-blocked  { background: #fff1f0; color: #cf1322; }
+    .badge-focus    { background: #e6f7ff; color: #096dd9; }
+    .dark .badge-pending  { background: #3a3000; color: #ffc53d; }
+    .dark .badge-done     { background: #1e3a1e; color: #73d13d; }
+    .dark .badge-blocked  { background: #3a1a1a; color: #ff4d4f; }
+    .dark .badge-focus    { background: #111d2c; color: #40a9ff; }
 
     .node.blocked { border-style: dashed; opacity: 0.7; }
     .dark .node.blocked { opacity: 0.7; }
@@ -160,7 +177,7 @@
         emptyHint: '右键 Todo 节点，选择「设置依赖」<br>即可建立待办之间的依赖关系',
         allDoneTitle: '所有依赖任务已完成 🎉',
         allDoneHint: '当前依赖链路中的任务均已完成<br>如有新的依赖关系，请重新创建',
-        done: '已完成', pending: '待完成', blocked: '阻塞中', notFound: '未找到该 Todo',
+        done: '已完成', pending: '待完成', blocked: '阻塞中', focus: '进行中', unfocus: '取消进行', notFound: '未找到该 Todo',
         cycleWarning: '检测到循环依赖，部分节点的层级可能不准确',
       },
       en: {
@@ -169,7 +186,7 @@
         emptyHint: 'Right-click a Todo and select "Set Dependencies"<br>to create dependency relationships',
         allDoneTitle: 'All dependency tasks completed 🎉',
         allDoneHint: 'All tasks in dependency chains are done<br>Create new dependencies if needed',
-        done: 'Done', pending: 'Pending', blocked: 'Blocked', notFound: 'Todo not found',
+        done: 'Done', pending: 'Pending', blocked: 'Blocked', focus: 'In Progress', unfocus: 'Cancel Focus', notFound: 'Todo not found',
         cycleWarning: 'Cycle detected — some nodes may be positioned incorrectly',
       },
     }
@@ -374,6 +391,13 @@
       autoScan()
     }
 
+    async function toggleTodoFocus(todoId, focus) {
+      try {
+        await callPlugin('toggleFocus', { todoId, focus, filePath: currentFilePath })
+      } catch {}
+      autoScan()
+    }
+
     function renderGraph(nodeIds, edges, positions, todoData, layout) {
       const container = document.getElementById('graphContainer')
       container.innerHTML = ''
@@ -464,6 +488,18 @@
         }
 
         const body = document.createElement('div'); body.className = 'node-body'
+
+        if (todo && !todo.done && !blocked) {
+          const focusBtn = document.createElement('button')
+          focusBtn.className = 'node-focus' + (todo.focus ? ' active' : '')
+          focusBtn.title = todo.focus ? t.unfocus : t.focus
+          focusBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg>'
+          focusBtn.addEventListener('click', e => {
+            e.stopPropagation()
+            toggleTodoFocus(id, !todo.focus)
+          })
+          body.appendChild(focusBtn)
+        }
         const content = document.createElement('div'); content.className = 'node-content'
         if (todo) {
           content.textContent = todo.content
@@ -481,6 +517,9 @@
           } else if (blocked) {
             sb.className = 'node-badge badge-blocked'
             sb.textContent = t.blocked
+          } else if (todo.focus) {
+            sb.className = 'node-badge badge-focus'
+            sb.textContent = t.focus
           } else {
             sb.className = 'node-badge badge-pending'
             sb.textContent = t.pending

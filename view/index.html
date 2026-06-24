@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Todo 依赖图</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100vh; overflow: hidden; }
+
+    #graphUI {
+      display: flex; height: 100vh;
+      flex-direction: column; overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #333;
+    }
+
+    body.dark #graphUI { color: #e0e0e0; }
+
+    .toolbar {
+      padding: 10px 16px; background: #fff; border-bottom: 1px solid #e8e8e8;
+      display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+    }
+    .dark .toolbar { background: #16213e; border-bottom-color: #2a2a4a; }
+    .toolbar-title { font-size: 14px; font-weight: 600; flex: 1; }
+
+    .btn {
+      padding: 6px 16px; border: none; border-radius: 6px;
+      font-size: 12px; cursor: pointer; transition: background 0.15s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-ghost { background: transparent; color: #666; }
+    .btn-ghost:hover { background: #f0f0f0; }
+    .dark .btn-ghost { color: #aaa; }
+    .dark .btn-ghost:hover { background: #2a2a4a; }
+
+    .warning {
+      background: #fffbe6; border-bottom: 1px solid #ffe58f; color: #ad6800;
+      padding: 6px 16px; font-size: 12px; flex-shrink: 0;
+    }
+    .dark .warning { background: #332b00; border-bottom-color: #554400; color: #ffc53d; }
+
+    #graphArea { flex: 1; overflow: auto; position: relative; background: #f7f8fa; }
+    .dark #graphArea { background: #1a1a2e; }
+    #graphContainer { position: relative; min-width: 100%; min-height: 100%; }
+
+    .node {
+      position: absolute; width: 200px; background: #fff;
+      border: 2px solid #d9d9d9; border-radius: 10px;
+      padding: 10px 12px; cursor: default;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      transition: box-shadow 0.2s, transform 0.15s;
+    }
+    .node:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); transform: translateY(-1px); }
+    .dark .node { background: #16213e; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+    .node.done { opacity: 0.55; }
+    .node.done .node-content { text-decoration: line-through; }
+    .node.not-found { border-style: dashed; opacity: 0.65; }
+
+    .node-header { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+    .node-id {
+      font-size: 10px; font-weight: 700; color: #fff;
+      background: #1890ff; padding: 1px 7px; border-radius: 10px;
+      flex-shrink: 0; letter-spacing: 0.3px;
+    }
+    .node-badge { font-size: 10px; padding: 1px 6px; border-radius: 10px; flex-shrink: 0; }
+    .badge-pending { background: #fff7e6; color: #d46b08; }
+    .badge-done    { background: #f6ffed; color: #389e0d; }
+    .dark .badge-pending { background: #332b00; color: #ffc53d; }
+    .dark .badge-done    { background: #0a2e0a; color: #73d13d; }
+
+    .node-content {
+      font-size: 12px; line-height: 1.5; word-break: break-word;
+      display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2;
+      -webkit-box-orient: vertical; overflow: hidden;
+    }
+
+    .level-default   { border-color: #1890ff; }
+    .level-secondary { border-color: #bbb; }
+    .level-success   { border-color: #52c41a; }
+    .level-warning   { border-color: #faad14; }
+    .level-danger    { border-color: #ff4d4f; }
+    .level-default   .node-id { background: #1890ff; }
+    .level-secondary .node-id { background: #999; }
+    .level-success   .node-id { background: #52c41a; }
+    .level-warning   .node-id { background: #e8a100; }
+    .level-danger    .node-id { background: #ff4d4f; }
+
+    #edgeSvg { position: absolute; top: 0; left: 0; pointer-events: none; }
+
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      height: 100%; color: #aaa; padding: 40px 24px; text-align: center; user-select: none;
+    }
+    .empty-icon { width: 64px; height: 64px; margin-bottom: 16px; opacity: 0.35; }
+    .empty-title { font-size: 15px; font-weight: 500; margin-bottom: 10px; color: #888; }
+    .dark .empty-title { color: #777; }
+    .empty-hint { font-size: 12px; line-height: 2; color: #aaa; }
+  </style>
+</head>
+
+<body>
+  <div id="graphUI">
+    <div class="toolbar">
+      <span class="toolbar-title" data-i18n="title"></span>
+      <button class="btn btn-ghost" id="refreshBtn" data-i18n="refresh"></button>
+    </div>
+    <div id="warnings"></div>
+    <div id="graphArea">
+      <div id="graphContainer">
+        <div class="empty-state" id="emptyState">
+          <svg class="empty-icon" viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="8" y="10" width="24" height="16" rx="4"/>
+            <rect x="48" y="10" width="24" height="16" rx="4"/>
+            <rect x="28" y="50" width="24" height="16" rx="4"/>
+            <line x1="26" y1="26" x2="36" y2="50" stroke-dasharray="3,2"/>
+            <line x1="54" y1="26" x2="44" y2="50" stroke-dasharray="3,2"/>
+            <polygon points="36,50 33,45 39,45" fill="currentColor" stroke="none"/>
+            <polygon points="44,50 41,45 47,45" fill="currentColor" stroke="none"/>
+          </svg>
+          <div class="empty-title" data-i18n="emptyTitle"></div>
+          <div class="empty-hint" data-i18n="emptyHint"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── i18n ──
+    const I18N = {
+      zh: {
+        title: '依赖图谱', refresh: '刷新',
+        emptyTitle: '暂无依赖关系',
+        emptyHint: '右键 Todo 节点，选择「设置依赖」<br>即可建立待办之间的依赖关系',
+        done: '已完成', pending: '待完成', notFound: '未找到该 Todo',
+        cycleWarning: '检测到循环依赖，部分节点的层级可能不准确',
+      },
+      en: {
+        title: 'Dependency Graph', refresh: 'Refresh',
+        emptyTitle: 'No dependencies yet',
+        emptyHint: 'Right-click a Todo and select "Set Dependencies"<br>to create dependency relationships',
+        done: 'Done', pending: 'Pending', notFound: 'Todo not found',
+        cycleWarning: 'Cycle detected — some nodes may be positioned incorrectly',
+      },
+    }
+    let t = I18N.zh
+    function detectLang(raw) {
+      t = (raw || navigator.language || 'en').toLowerCase().startsWith('zh') ? I18N.zh : I18N.en
+    }
+    function applyI18n() {
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const v = t[el.dataset.i18n]; if (v) el.innerHTML = v
+      })
+    }
+
+    // ── Plugin communication ──
+    let callId = 0
+    const pendingCalls = {}
+    let currentFilePath = ''
+    let isDark = false
+
+    function callPlugin(method, params) {
+      return new Promise((resolve, reject) => {
+        const id = ++callId
+        const timer = setTimeout(() => { delete pendingCalls[id]; reject(new Error('timeout')) }, 5000)
+        pendingCalls[id] = {
+          resolve: v => { clearTimeout(timer); resolve(v) },
+          reject:  e => { clearTimeout(timer); reject(e) },
+        }
+        window.parent.postMessage({ type: 'plugin-call', id, method, params }, '*')
+      })
+    }
+
+    function unwrap(res) {
+      const inner = res?.result || res
+      return inner?.result !== undefined ? inner.result : inner
+    }
+
+    window.addEventListener('message', event => {
+      const msg = event.data
+      if (!msg) return
+
+      if (msg.type === 'plugin-init') {
+        currentFilePath = msg.filePath || ''
+        detectLang(msg.lang); applyI18n()
+        if (msg.theme) {
+          document.body.style.color = msg.theme.color
+          document.body.style.backgroundColor = msg.theme.backgroundColor
+          const bg = msg.theme.backgroundColor
+          isDark = typeof bg === 'string' && (
+            bg.includes('rgb')
+              ? parseInt(bg.split(',')[0].replace(/\D/g, '')) < 128
+              : bg.startsWith('#') && parseInt(bg.slice(1, 3), 16) < 128
+          )
+          if (isDark) document.body.classList.add('dark')
+        }
+        autoScan()
+      }
+
+      if (msg.type === 'plugin-result' && pendingCalls[msg.id]) {
+        const { resolve, reject } = pendingCalls[msg.id]
+        delete pendingCalls[msg.id]
+        msg.error ? reject(new Error(msg.error)) : resolve(msg.result)
+      }
+
+      if (msg.type === 'plugin-tree-update') {
+        autoScan()
+      }
+    })
+
+    // ── Graph ──
+    document.getElementById('refreshBtn').addEventListener('click', autoScan)
+
+    async function autoScan() {
+      if (!currentFilePath) return
+      document.getElementById('warnings').innerHTML = ''
+      let data
+      try {
+        const res = await callPlugin('scanAllDeps', { filePath: currentFilePath })
+        data = unwrap(res)
+      } catch { return }
+      if (!data) return
+
+      const { todos, edges } = data
+      const nodeIds = Object.keys(todos).map(Number)
+      if (!nodeIds.length) { showEmpty(); return }
+
+      const { layers, hasCycle } = assignLayers(nodeIds, edges)
+      if (hasCycle) {
+        document.getElementById('warnings').innerHTML = '<div class="warning">' + t.cycleWarning + '</div>'
+      }
+      const layout = layoutGraph(nodeIds, layers)
+      renderGraph(nodeIds, edges, layout.positions, todos, layout)
+    }
+
+    function showEmpty() {
+      const c = document.getElementById('graphContainer')
+      const e = document.getElementById('emptyState')
+      c.innerHTML = ''; c.style.width = ''; c.style.height = ''
+      c.appendChild(e); e.style.display = 'flex'
+    }
+
+    // ── Layout algorithm ──
+    function assignLayers(nodeIds, edges) {
+      const adj = {}, inDeg = {}
+      for (const id of nodeIds) { adj[id] = []; inDeg[id] = 0 }
+      for (const [f, tt] of edges) {
+        if (adj[f] && inDeg[tt] !== undefined) { adj[f].push(tt); inDeg[tt]++ }
+      }
+      const layers = {}, queue = []
+      for (const id of nodeIds) { if (inDeg[id] === 0) { queue.push(id); layers[id] = 0 } }
+      let head = 0
+      while (head < queue.length) {
+        const cur = queue[head++]
+        for (const next of adj[cur]) {
+          const nl = layers[cur] + 1
+          if (layers[next] === undefined || nl > layers[next]) layers[next] = nl
+          if (--inDeg[next] === 0) queue.push(next)
+        }
+      }
+      const hasCycle = nodeIds.some(id => layers[id] === undefined)
+      if (hasCycle) {
+        const maxL = Math.max(0, ...Object.values(layers).filter(v => v !== undefined))
+        for (const id of nodeIds) { if (layers[id] === undefined) layers[id] = maxL + 1 }
+      }
+      return { layers, hasCycle }
+    }
+
+    const NODE_W = 200, NODE_H = 72, GAP_X = 44, GAP_Y = 70, PAD = 36
+    function layoutGraph(nodeIds, layers) {
+      if (!nodeIds.length) return { positions: {}, width: 0, height: 0 }
+      const maxLayer = Math.max(...Object.values(layers))
+      const groups = Array.from({ length: maxLayer + 1 }, () => [])
+      for (const id of nodeIds) groups[layers[id]].push(id)
+      const maxCount = Math.max(...groups.map(g => g.length))
+      const totalW = Math.max(maxCount * NODE_W + (maxCount - 1) * GAP_X + PAD * 2, 400)
+      const totalH = PAD * 2 + (maxLayer + 1) * NODE_H + maxLayer * GAP_Y
+      const positions = {}
+      for (let l = 0; l <= maxLayer; l++) {
+        const g = groups[l]
+        const gw = g.length * NODE_W + (g.length - 1) * GAP_X
+        const sx = (totalW - gw) / 2
+        for (let i = 0; i < g.length; i++) {
+          positions[g[i]] = { x: sx + i * (NODE_W + GAP_X), y: PAD + l * (NODE_H + GAP_Y) }
+        }
+      }
+      return { positions, width: totalW, height: totalH }
+    }
+
+    function svgEl(tag, attrs) {
+      const el = document.createElementNS('http://www.w3.org/2000/svg', tag)
+      for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v)
+      return el
+    }
+
+    function renderGraph(nodeIds, edges, positions, todoData, layout) {
+      const container = document.getElementById('graphContainer')
+      container.innerHTML = ''
+      container.style.width  = layout.width + 'px'
+      container.style.height = layout.height + 'px'
+
+      const edgeColor = isDark ? '#4a4a6a' : '#c8c8d0'
+      const arrowColor = isDark ? '#6a6a8a' : '#aaa'
+      const svg = svgEl('svg', { id: 'edgeSvg', width: layout.width, height: layout.height })
+      const defs = svgEl('defs', {})
+      const marker = svgEl('marker', {
+        id: 'arrow', markerWidth: 10, markerHeight: 7,
+        refX: 9, refY: 3.5, orient: 'auto', markerUnits: 'strokeWidth',
+      })
+      marker.appendChild(svgEl('polygon', { points: '0 0.5,9 3.5,0 6.5', fill: arrowColor }))
+      defs.appendChild(marker); svg.appendChild(defs)
+
+      for (const [from, to] of edges) {
+        const p1 = positions[from], p2 = positions[to]
+        if (!p1 || !p2) continue
+        const x1 = p1.x + NODE_W / 2, y1 = p1.y + NODE_H
+        const x2 = p2.x + NODE_W / 2, y2 = p2.y
+        const cp = Math.max(Math.abs(y2 - y1) * 0.35, 20)
+        svg.appendChild(svgEl('path', {
+          d: `M${x1},${y1} C${x1},${y1 + cp} ${x2},${y2 - cp} ${x2},${y2}`,
+          fill: 'none', stroke: edgeColor, 'stroke-width': 2, 'marker-end': 'url(#arrow)',
+        }))
+      }
+      container.appendChild(svg)
+
+      for (const id of nodeIds) {
+        const pos = positions[id]; if (!pos) continue
+        const todo = todoData[id]
+        const el = document.createElement('div'); el.className = 'node'
+        if (todo) {
+          el.classList.add('level-' + (todo.level || 'default'))
+          if (todo.done) el.classList.add('done')
+        } else el.classList.add('not-found')
+        el.style.cssText = `left:${pos.x}px;top:${pos.y}px;width:${NODE_W}px;`
+
+        const header = document.createElement('div'); header.className = 'node-header'
+        const badge = document.createElement('span'); badge.className = 'node-id'
+        badge.textContent = '#' + id; header.appendChild(badge)
+        if (todo) {
+          const sb = document.createElement('span')
+          sb.className = 'node-badge ' + (todo.done ? 'badge-done' : 'badge-pending')
+          sb.textContent = todo.done ? t.done : t.pending
+          header.appendChild(sb)
+        }
+        el.appendChild(header)
+        const content = document.createElement('div'); content.className = 'node-content'
+        if (todo) content.textContent = todo.content
+        else { content.textContent = t.notFound; content.style.color = '#ff4d4f'; content.style.fontStyle = 'italic' }
+        el.appendChild(content); container.appendChild(el)
+      }
+    }
+
+    // ── Init ──
+    detectLang(); applyI18n()
+  </script>
+</body>
+
+</html>

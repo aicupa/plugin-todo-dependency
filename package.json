@@ -1,0 +1,30 @@
+{
+  "name": "@aicupa/plugin-todo-dependency",
+  "version": "1.0.0",
+  "description": "Set and visualize dependencies between todo items",
+  "description_zh": "设置并可视化待办事项之间的依赖关系",
+  "main": "./service",
+  "view": "./view",
+  "viewjs": "./inject.js",
+  "viewSize": {
+    "width": 900,
+    "height": 620
+  },
+  "pluginContributes": {
+    "contextMenus": [
+      {
+        "title": "Set Dependencies",
+        "title_zh": "设置依赖",
+        "command": "setDependency"
+      }
+    ]
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@aicupa/api": "^1.0.4"
+  }
+}

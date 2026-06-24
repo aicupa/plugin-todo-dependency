@@ -1,0 +1,32 @@
+view/index.html
+  s_256ff5ba060104::t_af84415cae2acb 82,85-87,90,92-93
+  s_256ff5ba060104::t_17d3688cf5adc9 520-522
+  s_256ff5ba060104::t_a648794c70c9f9 84,88-89,91,94-97
+  s_256ff5ba060104::t_4b615c1c40182c 496
+  s_256ff5ba060104::t_62bcc2d20dad8d 491,501
+  s_256ff5ba060104::t_9fede32dee4da8 492-495,497-500,502
+  s_256ff5ba060104::t_ac9f3e0fe24472 394-400
+  s_256ff5ba060104::t_288cbb5e0c288e 55
+  s_256ff5ba060104::t_35d6053c1a7939 180
+  s_256ff5ba060104::t_f9cc95a6cffc7e 189
+  s_256ff5ba060104::t_fcd172ed9b6ff6 109-116
+service.js
+  s_256ff5ba060104::t_4cfd30b919d125 87-99
+  s_256ff5ba060104::t_a29aa51cdba709 14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.11",
+  "base_commit_sha": "9de5e183f46bce01c34e1c15e6cd0acd06f2f238",
+  "prompts": {},
+  "sessions": {
+    "s_256ff5ba060104": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d9fab7c0-50df-4658-905e-8ab0e1923b79",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "muhai <muhai.li@tuya.com>"
+    }
+  }
+}

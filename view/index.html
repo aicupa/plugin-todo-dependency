@@ -125,6 +125,8 @@
     .level-danger    { border-color: #ff4d4f; }
 
     #edgeSvg { position: absolute; top: 0; left: 0; pointer-events: none; }
+    #edgeSvg path { transition: stroke-width 0.2s, opacity 0.2s; }
+    @keyframes edge-flow { from { stroke-dashoffset: 18; } to { stroke-dashoffset: 0; } }
 
     #graphInner { transition: opacity 0.35s ease; }
     #graphInner.fade-out { opacity: 0; }
@@ -444,7 +446,11 @@
       svg.appendChild(defs)
 
       const ARROW_H = 6
+      const edgeEls = []
+      const downMap = {}, upMap = {}
       for (const [from, to] of edges) {
+        ;(downMap[from] || (downMap[from] = [])).push(to)
+        ;(upMap[to] || (upMap[to] = [])).push(from)
         const p1 = positions[from], p2 = positions[to]
         if (!p1 || !p2) continue
         const x1 = p1.x + NODE_W / 2, y1 = p1.y + NODE_H
@@ -454,16 +460,54 @@
         const fromDone = todoData[from]?.done
         const toBlocked = isBlocked(to)
         const isBlockingEdge = toBlocked && !fromDone
-        svg.appendChild(svgEl('path', {
+        const pathEl = svgEl('path', {
           d: `M${x1},${y1} C${x1},${y1 + cp} ${x2},${y2 - cp} ${x2},${y2}`,
           fill: 'none',
           stroke: isBlockingEdge ? blockedEdgeColor : edgeColor,
           'stroke-width': 1.5,
           'stroke-dasharray': isBlockingEdge ? '6,3' : 'none',
           'marker-end': isBlockingEdge ? 'url(#arrow-blocked)' : 'url(#arrow)',
-        }))
+        })
+        svg.appendChild(pathEl)
+        edgeEls.push({ el: pathEl, from, to })
       }
       inner.appendChild(svg)
+
+      // Apply flow animation from each focus node to its downstream end
+      const flowNodes = new Set()
+      for (const nid of nodeIds) {
+        if (todoData[nid]?.focus && !todoData[nid]?.done && !isBlocked(nid)) {
+          flowNodes.add(nid)
+          const q = [nid]
+          while (q.length) {
+            const cur = q.shift()
+            for (const next of (downMap[cur] || [])) {
+              if (!flowNodes.has(next)) { flowNodes.add(next); q.push(next) }
+            }
+          }
+        }
+      }
+      edgeEls.forEach(e => {
+        if (flowNodes.has(e.from) && flowNodes.has(e.to)) {
+          e.el.style.strokeDasharray = '12 6'
+          e.el.style.animation = 'edge-flow 0.6s linear infinite'
+        }
+      })
+
+      function collectChain(id) {
+        const visited = new Set([id])
+        const queue = [id]
+        while (queue.length) {
+          const cur = queue.shift()
+          for (const next of (downMap[cur] || [])) { if (!visited.has(next)) { visited.add(next); queue.push(next) } }
+        }
+        const queue2 = [id]
+        while (queue2.length) {
+          const cur = queue2.shift()
+          for (const prev of (upMap[cur] || [])) { if (!visited.has(prev)) { visited.add(prev); queue2.push(prev) } }
+        }
+        return visited
+      }
 
       for (const id of nodeIds) {
         const pos = positions[id]; if (!pos) continue
@@ -476,6 +520,24 @@
           else if (blocked) el.classList.add('blocked')
         } else el.classList.add('not-found')
         el.style.cssText = `left:${pos.x}px;top:${pos.y}px;width:${NODE_W}px;`
+        el.dataset.id = id
+        el.addEventListener('mouseenter', () => {
+          const chain = collectChain(id)
+          edgeEls.forEach(e => {
+            if (chain.has(e.from) && chain.has(e.to)) {
+              e.el.style.strokeWidth = '2.5'
+              e.el.style.opacity = '1'
+            } else {
+              e.el.style.opacity = '0.15'
+            }
+          })
+        })
+        el.addEventListener('mouseleave', () => {
+          edgeEls.forEach(e => {
+            e.el.style.strokeWidth = ''
+            e.el.style.opacity = ''
+          })
+        })
 
         if (todo) {
           const check = document.createElement('div')

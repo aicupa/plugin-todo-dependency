@@ -1,0 +1,29 @@
+view/index.html
+  s_9a3551303da9d3::t_fbacb039c0d95f 129
+  s_9a3551303da9d3::t_ed9f9c97f5911d 449-450,452-453,463,470
+  s_9a3551303da9d3::t_0732694aaa1683 476-477,479-480,489-494
+  s_9a3551303da9d3::t_4a2b6d979188a2 128
+  s_9a3551303da9d3::t_93b3b95fa85e13 502,523,533-534,539
+  s_9a3551303da9d3::t_67e0c0699b5934 495,524,531-532
+  s_9a3551303da9d3::t_c0084c2e53fb37 478
+  s_9a3551303da9d3::t_31ea6d8861436a 529,538
+  s_9a3551303da9d3::t_945c9cfc9c6e1f 481-488
+  s_9a3551303da9d3::t_573eb7b8cec4f5 525-528,530,535-537
+  s_9a3551303da9d3::t_5cb1e82146b90f 471
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.11",
+  "base_commit_sha": "4653022f1413bd6ce68f083ef797e4ce80069137",
+  "prompts": {},
+  "sessions": {
+    "s_9a3551303da9d3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9b5da74e-20c1-426b-b31f-9ec7950b4053",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "muhai <muhai.li@tuya.com>"
+    }
+  }
+}

@@ -43,8 +43,8 @@
 
     #graphArea { flex: 1; overflow: auto; position: relative; background: #f7f8fa; }
     .dark #graphArea { background: #1e1e1e; }
-    #graphContainer { min-width: 100%; min-height: 100%; display: flex; align-items: center; justify-content: center; }
-    #graphInner { position: relative; flex-shrink: 0; }
+    #graphContainer { display: inline-block; min-width: 100%; min-height: 100%; box-sizing: border-box; padding: 20px; }
+    #graphInner { position: relative; margin: 0 auto; }
 
     .node {
       position: absolute; width: 200px; background: #fff;
@@ -301,6 +301,9 @@
         if (comp.some(id => !todos[id]?.done)) {
           for (const id of comp) visibleIds.add(id)
         }
+      }
+      for (const id of visibleIds) {
+        if (!todos[id]) visibleIds.delete(id)
       }
       const edges = allEdges.filter(([from, to]) => visibleIds.has(from) && visibleIds.has(to))
       const nodeIds = [...visibleIds]

@@ -142,6 +142,90 @@ module.exports = (api) => {
       }
     },
 
+    async autoDependency({ node, filePath }) {
+      try {
+        const content = await api.readFile(filePath)
+        const data = JSON.parse(content)
+        const tree = getTreeNodes(data)
+        const targetId = node.todo.id
+
+        function collectAutoDepPairs(nodes) {
+          const pairs = []
+          for (const n of nodes) {
+            if (!n.todo || !n.children?.length) continue
+            const childIds = n.children.filter(c => c.todo).map(c => c.todo.id)
+            if (childIds.length) {
+              pairs.push({ id: n.todo.id, content: n.todo.content, depIds: childIds })
+            }
+            pairs.push(...collectAutoDepPairs(n.children))
+          }
+          return pairs
+        }
+
+        function findNode(nodes, id) {
+          for (const n of nodes) {
+            if (n.todo?.id === id) return n
+            if (n.children?.length) {
+              const found = findNode(n.children, id)
+              if (found) return found
+            }
+          }
+          return null
+        }
+
+        const targetNode = findNode(tree, targetId)
+        if (!targetNode || !targetNode.children?.length) {
+          return { ok: true, result: { pairs: [], filePath } }
+        }
+
+        const pairs = collectAutoDepPairs([targetNode])
+
+        const allTodos = []
+        flattenTodos(tree, allTodos)
+        const todoMap = {}
+        for (const t of allTodos) todoMap[t.id] = t
+
+        const pairsWithNames = pairs.map(p => ({
+          ...p,
+          deps: p.depIds.map(id => ({ id, content: todoMap[id]?.content || '#' + id })),
+        }))
+
+        return { ok: true, result: { pairs: pairsWithNames, filePath } }
+      } catch (e) {
+        return { ok: false, error: e.message }
+      }
+    },
+
+    async applyAutoDeps({ pairs, filePath }) {
+      try {
+        const content = await api.readFile(filePath)
+        const data = JSON.parse(content)
+        const todotree = data.todotree
+
+        function findAndSetDeps(nodes, id, depIds) {
+          for (const n of nodes) {
+            if (n.todo?.id === id) {
+              if (depIds.length) n.todo.depIds = depIds
+              else delete n.todo.depIds
+              return true
+            }
+            if (n.children?.length && findAndSetDeps(n.children, id, depIds)) return true
+          }
+          return false
+        }
+
+        for (const p of pairs) {
+          findAndSetDeps(todotree.tree, p.id, p.depIds)
+        }
+
+        await api.store('todotree', todotree, filePath)
+        await api.reload(filePath)
+        return { ok: true }
+      } catch (e) {
+        return { ok: false, error: e.message }
+      }
+    },
+
     async scanAllDeps({ filePath }) {
       try {
         const data = await api.getTree(filePath)

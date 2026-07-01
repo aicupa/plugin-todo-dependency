@@ -16,6 +16,11 @@
         "title": "Set Dependencies",
         "title_zh": "设置依赖",
         "command": "setDependency"
+      },
+      {
+        "title": "Auto Dependencies",
+        "title_zh": "自动依赖",
+        "command": "autoDependency"
       }
     ]
   },

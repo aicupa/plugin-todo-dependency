@@ -10,12 +10,20 @@
         cancel: '取消', save: '保存', done: '已完成',
         selCount: n => `已选 ${n} 个依赖`, noMatch: '无匹配结果',
         depLabel: '依赖',
+        autoDepTitle: '自动依赖', autoDepConfirm: '确认应用',
+        autoDepDesc: '将为以下节点自动设置子节点为依赖：',
+        autoDepEmpty: '当前节点没有可设置的子节点依赖',
+        autoDepArrow: '→ 依赖：',
       }
     : {
         modalTitle: 'Set Dependencies', searchPlaceholder: 'Search Todos...',
         cancel: 'Cancel', save: 'Save', done: 'Done',
         selCount: n => `${n} selected`, noMatch: 'No matching results',
         depLabel: 'Depends on',
+        autoDepTitle: 'Auto Dependencies', autoDepConfirm: 'Apply',
+        autoDepDesc: 'The following nodes will have their children set as dependencies:',
+        autoDepEmpty: 'No child nodes to set as dependencies',
+        autoDepArrow: '→ Deps: ',
       }
 
   // ── Service call via CustomEvent ──
@@ -54,6 +62,15 @@
     currentFilePath = r.target.filePath || currentFilePath
     allTodos = r.allTodos || []
     showModal(r.target)
+  })
+
+  window.addEventListener('plugin-command-done', e => {
+    const d = e.detail
+    if (!d || d.command !== 'autoDependency') return
+    const r = unwrap(d.result)
+    if (!r) return
+    currentFilePath = r.filePath || currentFilePath
+    showAutoDepConfirm(r.pairs || [])
   })
 
   // ── Tree update listener — refresh dep data ──
@@ -164,6 +181,13 @@
       .tdep-btn:active { transform: scale(0.97); }
       .tdep-btn-primary { background: #1890ff; color: #fff; }
       .tdep-btn-primary:hover { background: #40a9ff; }
+
+      .tdep-auto-list { padding: 8px 20px; max-height: 50vh; overflow-y: auto; }
+      .tdep-auto-item { padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+      .tdep-auto-item:last-child { border-bottom: none; }
+      .tdep-auto-parent { font-weight: 600; margin-bottom: 4px; }
+      .tdep-auto-deps { color: #888; font-size: 12px; padding-left: 16px; }
+      .tdep-auto-desc { padding: 8px 20px 4px; font-size: 12px; color: #888; }
     `
     document.head.appendChild(s)
   }
@@ -338,6 +362,55 @@
       })
     } catch (e) {}
     hideModal()
+  }
+
+  // ── Auto Dependency Confirm ──
+  function showAutoDepConfirm(pairs) {
+    if (!pairs.length) {
+      alert(T.autoDepEmpty)
+      return
+    }
+    const backdrop = document.createElement('div')
+    backdrop.className = 'tdep-backdrop'
+    const listHtml = pairs.map(p =>
+      '<div class="tdep-auto-item">'
+        + '<div class="tdep-auto-parent">' + escHtml(p.content) + '</div>'
+        + '<div class="tdep-auto-deps">' + escHtml(T.autoDepArrow) + p.deps.map(d => escHtml(d.content)).join(', ') + '</div>'
+      + '</div>'
+    ).join('')
+    backdrop.innerHTML = `
+      <div class="tdep-card">
+        <div class="tdep-header">
+          <div class="tdep-title">${escHtml(T.autoDepTitle)}</div>
+        </div>
+        <div class="tdep-auto-desc">${escHtml(T.autoDepDesc)}</div>
+        <div class="tdep-auto-list">${listHtml}</div>
+        <div class="tdep-footer">
+          <span></span>
+          <div class="tdep-actions">
+            <button class="tdep-btn" id="tdep-auto-cancel">${escHtml(T.cancel)}</button>
+            <button class="tdep-btn tdep-btn-primary" id="tdep-auto-confirm">${escHtml(T.autoDepConfirm)}</button>
+          </div>
+        </div>
+      </div>
+    `
+    document.body.appendChild(backdrop)
+
+    const close = () => backdrop.remove()
+    backdrop.addEventListener('click', e => { if (e.target === backdrop) close() })
+    backdrop.querySelector('#tdep-auto-cancel').addEventListener('click', close)
+    backdrop.querySelector('#tdep-auto-confirm').addEventListener('click', async () => {
+      try {
+        await callPluginService('applyAutoDeps', {
+          pairs: pairs.map(p => ({ id: p.id, depIds: p.depIds })),
+          filePath: currentFilePath,
+        })
+      } catch (e) {}
+      close()
+    })
+
+    const onEsc = e => { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onEsc) } }
+    document.addEventListener('keydown', onEsc)
   }
 
   // ── Init ──

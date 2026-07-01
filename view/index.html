@@ -671,9 +671,6 @@
           if (todo.done) {
             sb.className = 'node-badge badge-done'
             sb.textContent = t.done
-          } else if (blocked && todo.focus) {
-            sb.className = 'node-badge badge-focus'
-            sb.textContent = t.focus
           } else if (blocked) {
             sb.className = 'node-badge badge-blocked'
             sb.textContent = t.blocked

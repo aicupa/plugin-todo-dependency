@@ -41,6 +41,23 @@
     }
     .dark .warning { background: #3a3000; border-bottom-color: #554400; color: #ffc53d; }
 
+    .tab-bar {
+      display: flex; gap: 0; background: #fff; border-bottom: 1px solid #e8e8e8;
+      flex-shrink: 0; overflow-x: auto; padding: 0 12px;
+      scrollbar-width: none;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+    .dark .tab-bar { background: #252526; border-bottom-color: #3c3c3c; }
+    .tab-item {
+      padding: 8px 16px; font-size: 12px; cursor: pointer; white-space: nowrap;
+      border-bottom: 2px solid transparent; color: #888; transition: all 0.15s;
+      max-width: 160px; overflow: hidden; text-overflow: ellipsis;
+    }
+    .tab-item:hover { color: #333; background: #f5f5f5; }
+    .dark .tab-item:hover { color: #ccc; background: #3c3c3c; }
+    .tab-item.active { color: #1890ff; border-bottom-color: #1890ff; font-weight: 500; }
+    .dark .tab-item.active { color: #40a9ff; border-bottom-color: #40a9ff; }
+
     #graphArea { flex: 1; overflow: auto; position: relative; background: #f7f8fa; }
     .dark #graphArea { background: #1e1e1e; }
     #graphContainer { display: inline-block; min-width: 100%; min-height: 100%; box-sizing: border-box; padding: 20px; }
@@ -152,6 +169,7 @@
       <button class="btn btn-ghost" id="refreshBtn" data-i18n="refresh"></button>
     </div>
     <div id="warnings"></div>
+    <div id="tabBar" class="tab-bar" style="display:none;"></div>
     <div id="graphArea">
       <div id="graphContainer"></div>
       <div class="empty-state visible" id="emptyState">
@@ -260,6 +278,10 @@
     // ── Graph ──
     document.getElementById('refreshBtn').addEventListener('click', autoScan)
 
+    let cachedComponents = []
+    let cachedTodos = {}
+    let activeTab = 0
+
     async function autoScan() {
       if (!currentFilePath) return
       document.getElementById('warnings').innerHTML = ''
@@ -271,21 +293,24 @@
       if (!data) return
 
       const { todos, edges: allEdges } = data
+      cachedTodos = todos
       hideEmpty()
 
-      // Build adjacency (both directions) to find connected components
       const allIds = new Set()
       const neighbors = {}
+      const outEdges = {}
       for (const [from, to] of allEdges) {
         allIds.add(from); allIds.add(to)
         if (!neighbors[from]) neighbors[from] = []
         if (!neighbors[to]) neighbors[to] = []
         neighbors[from].push(to)
         neighbors[to].push(from)
+        if (!outEdges[from]) outEdges[from] = []
+        outEdges[from].push(to)
       }
-      // BFS to find connected components, keep components that have any undone node
+
       const visited = new Set()
-      const visibleIds = new Set()
+      const components = []
       for (const start of allIds) {
         if (visited.has(start)) continue
         const comp = []
@@ -299,25 +324,66 @@
           }
         }
         if (comp.some(id => todos[id] && !todos[id].done)) {
-          for (const id of comp) visibleIds.add(id)
+          const ids = comp.filter(id => todos[id])
+          if (ids.length) components.push(ids)
         }
       }
-      for (const id of visibleIds) {
-        if (!todos[id]) visibleIds.delete(id)
-      }
-      const edges = allEdges.filter(([from, to]) => visibleIds.has(from) && visibleIds.has(to))
-      const nodeIds = [...visibleIds]
-      if (!nodeIds.length) { fadeToEmpty(allEdges.length > 0); return }
 
-      const { layers, hasCycle } = assignLayers(nodeIds, edges)
+      if (!components.length) {
+        document.getElementById('tabBar').style.display = 'none'
+        fadeToEmpty(allEdges.length > 0)
+        return
+      }
+
+      // Find sink node (no outgoing edges) for each component as tab title
+      cachedComponents = components.map(ids => {
+        const idSet = new Set(ids)
+        const compEdges = allEdges.filter(([f, t]) => idSet.has(f) && idSet.has(t))
+        const sinks = ids.filter(id => !(outEdges[id] || []).some(t => idSet.has(t)))
+        const title = sinks.length
+          ? sinks.map(id => todos[id]?.content || '#' + id).join(' / ')
+          : todos[ids[0]]?.content || '#' + ids[0]
+        return { ids, edges: compEdges, title }
+      })
+
+      if (activeTab >= cachedComponents.length) activeTab = 0
+      renderTabs()
+      renderActiveTab()
+    }
+
+    function renderTabs() {
+      const tabBar = document.getElementById('tabBar')
+      if (cachedComponents.length <= 1) {
+        tabBar.style.display = 'none'
+        return
+      }
+      tabBar.style.display = 'flex'
+      tabBar.innerHTML = cachedComponents.map((c, i) =>
+        '<div class="tab-item' + (i === activeTab ? ' active' : '') + '" data-tab="' + i + '" title="' + c.title.replace(/"/g, '&quot;') + '">' + c.title + '</div>'
+      ).join('')
+      tabBar.querySelectorAll('.tab-item').forEach(el => {
+        el.addEventListener('click', () => {
+          activeTab = Number(el.dataset.tab)
+          renderTabs()
+          renderActiveTab()
+        })
+      })
+    }
+
+    function renderActiveTab() {
+      const comp = cachedComponents[activeTab]
+      if (!comp) return
+      const { ids, edges } = comp
+      const { layers, hasCycle } = assignLayers(ids, edges)
       if (hasCycle) {
         document.getElementById('warnings').innerHTML = '<div class="warning">' + t.cycleWarning + '</div>'
       }
-      const layout = layoutGraph(nodeIds, layers)
-      renderGraph(nodeIds, edges, layout.positions, todos, layout)
+      const layout = layoutGraph(ids, layers)
+      renderGraph(ids, edges, layout.positions, cachedTodos, layout)
     }
 
     function showEmpty(allDone) {
+      document.getElementById('tabBar').style.display = 'none'
       document.getElementById('graphContainer').innerHTML = ''
       const e = document.getElementById('emptyState')
       e.querySelector('.empty-title').innerHTML = allDone ? t.allDoneTitle : t.emptyTitle

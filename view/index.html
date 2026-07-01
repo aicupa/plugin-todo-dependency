@@ -298,7 +298,7 @@
             if (!visited.has(nb)) { visited.add(nb); queue.push(nb) }
           }
         }
-        if (comp.some(id => !todos[id]?.done)) {
+        if (comp.some(id => todos[id] && !todos[id].done)) {
           for (const id of comp) visibleIds.add(id)
         }
       }

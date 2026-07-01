@@ -1,0 +1,34 @@
+service.js
+  s_9a3551303da9d3::t_065d64b2708447 167
+  s_9a3551303da9d3::t_b19275edeb0dd8 147-148
+  s_9a3551303da9d3::t_66b7a24c7f0e1a 149-150,165,169,176
+  s_9a3551303da9d3::t_c88f6a7d1bbd80 140-143,145-146,151-164,166,168,170-175,177,179-221
+  s_9a3551303da9d3::t_68908dfc215edc 178
+  s_9a3551303da9d3::t_b18b0615a4e9a4 138-139
+  s_9a3551303da9d3::t_d5b01b4a9614f7 144
+inject.js
+  s_9a3551303da9d3::t_ceb81672b9d5bf 70,73
+  s_9a3551303da9d3::t_2276d80eecc164 367,369,371-415
+  s_9a3551303da9d3::t_af8f0ab2c7e28c 67-69,71-72,74-75
+  s_9a3551303da9d3::t_415ac91afab6e7 184-190
+  s_9a3551303da9d3::t_6951c3058c1aa0 13-16,23-26
+  s_9a3551303da9d3::t_241e269abb661f 368,370
+package.json
+  s_9a3551303da9d3::t_1c0317c4fa41e9 19-23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "7664df08c127746cf5f9f858842b7282e67255f6",
+  "prompts": {},
+  "sessions": {
+    "s_9a3551303da9d3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9b5da74e-20c1-426b-b31f-9ec7950b4053",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "muhai <muhai.li@tuya.com>"
+    }
+  }
+}

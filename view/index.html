@@ -57,6 +57,14 @@
     .dark .tab-item:hover { color: #ccc; background: #3c3c3c; }
     .tab-item.active { color: #1890ff; border-bottom-color: #1890ff; font-weight: 500; }
     .dark .tab-item.active { color: #40a9ff; border-bottom-color: #40a9ff; }
+    .tab-dot {
+      display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+      background: #1890ff; margin-right: 6px; vertical-align: middle;
+      box-shadow: 0 0 6px #1890ff;
+      animation: tab-dot-pulse 2.5s ease-in-out infinite;
+    }
+    .dark .tab-dot { background: #40a9ff; box-shadow: 0 0 6px #40a9ff; }
+    @keyframes tab-dot-pulse { 0%,40% { opacity: 1; box-shadow: 0 0 8px currentColor; } 70% { opacity: 0.35; box-shadow: none; } 100% { opacity: 1; box-shadow: 0 0 8px currentColor; } }
 
     #graphArea { flex: 1; overflow: auto; position: relative; background: #f7f8fa; }
     .dark #graphArea { background: #1e1e1e; }
@@ -343,7 +351,8 @@
         const title = sinks.length
           ? sinks.map(id => todos[id]?.content || '#' + id).join(' / ')
           : todos[ids[0]]?.content || '#' + ids[0]
-        return { ids, edges: compEdges, title }
+        const sinkInProgress = sinks.some(id => todos[id]?.focus && !todos[id]?.done)
+        return { ids, edges: compEdges, title, sinkInProgress }
       })
 
       if (activeTab >= cachedComponents.length) activeTab = 0
@@ -359,7 +368,9 @@
       }
       tabBar.style.display = 'flex'
       tabBar.innerHTML = cachedComponents.map((c, i) =>
-        '<div class="tab-item' + (i === activeTab ? ' active' : '') + '" data-tab="' + i + '" title="' + c.title.replace(/"/g, '&quot;') + '">' + c.title + '</div>'
+        '<div class="tab-item' + (i === activeTab ? ' active' : '') + '" data-tab="' + i + '" title="' + c.title.replace(/"/g, '&quot;') + '">'
+        + (c.sinkInProgress ? '<span class="tab-dot"></span>' : '')
+        + c.title + '</div>'
       ).join('')
       tabBar.querySelectorAll('.tab-item').forEach(el => {
         el.addEventListener('click', () => {
@@ -621,16 +632,21 @@
         if (todo) {
           const check = document.createElement('div')
           check.className = 'node-check' + (todo.done ? ' checked' : '')
-          check.addEventListener('click', e => {
-            e.stopPropagation()
-            toggleTodoDone(id, !todo.done)
-          })
+          if (blocked && !todo.done) {
+            check.style.cursor = 'not-allowed'
+            check.style.opacity = '0.4'
+          } else {
+            check.addEventListener('click', e => {
+              e.stopPropagation()
+              toggleTodoDone(id, !todo.done)
+            })
+          }
           el.appendChild(check)
         }
 
         const body = document.createElement('div'); body.className = 'node-body'
 
-        if (todo && !todo.done && !blocked) {
+        if (todo && !todo.done) {
           const focusBtn = document.createElement('button')
           focusBtn.className = 'node-focus' + (todo.focus ? ' active' : '')
           focusBtn.title = todo.focus ? t.unfocus : t.focus
@@ -655,6 +671,9 @@
           if (todo.done) {
             sb.className = 'node-badge badge-done'
             sb.textContent = t.done
+          } else if (blocked && todo.focus) {
+            sb.className = 'node-badge badge-focus'
+            sb.textContent = t.focus
           } else if (blocked) {
             sb.className = 'node-badge badge-blocked'
             sb.textContent = t.blocked
